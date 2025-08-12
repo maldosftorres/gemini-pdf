@@ -153,9 +153,22 @@ export default function UploadPDF() {
 
   useEffect(() => { getMongoData(); }, []);
 
+  useEffect(() => {
+    if (prompt && json) {
+      console.log("prompt:", prompt);
+      console.log("json:", json);
+    }
+  }, [prompt, json]);
+
+  useEffect(() => {
+    if (resultObj) {
+      console.log("resultObj:", resultObj);
+    }
+  }, [resultObj]);
+
   const copyToClipboard = async () => {
     const text = resultObj ? JSON.stringify(resultObj, null, 2) : rawText;
-    try { await navigator.clipboard.writeText(text); alert("Copiado al portapapeles"); } catch (_) {}
+    try { await navigator.clipboard.writeText(text); alert("Copiado al portapapeles"); } catch (_) { }
   };
 
   return (

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export const useDarkMode = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Verificar si hay una preferencia guardada
-    const saved = localStorage.getItem('darkMode');
+    const saved = localStorage.getItem('theme');
     if (saved !== null) {
       return JSON.parse(saved);
     }
@@ -20,7 +20,7 @@ export const useDarkMode = () => {
     }
     
     // Guardar la preferencia
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+    localStorage.setItem('theme', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
