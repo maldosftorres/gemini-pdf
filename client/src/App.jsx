@@ -2,7 +2,12 @@
 import UploadPDF from './components/UploadPDF'
 
 function App() {
-  return <UploadPDF />
+  return (
+    <>
+      <UploadPDF />
+    </>
+  )
+
 }
 
 export default App
