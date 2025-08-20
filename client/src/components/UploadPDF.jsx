@@ -1,41 +1,29 @@
 import axios from "axios";
-import { useState, useEffect } from "react";
-import { useDarkMode } from "../hooks/useDarkMode";
-import { FaSun, FaMoon, FaFilePdf, FaUpload, FaSpinner, FaCheckCircle, FaExclamationCircle, FaCopy } from "react-icons/fa";
-import { API_URL_UPLOAD, API_JSON_SCHEMA_URL } from "../constants/urls";
-import { copyToClipboard, extraerJSON } from "../utils/utils";
-import { Viewer, Worker } from '@react-pdf-viewer/core';
+import { useState, useEffect, useRef } from "react";
+import { FaFilePdf } from "react-icons/fa";
+import { API_URL_UPLOAD, API_JSON_SCHEMA_URL, API_DISPOSICIONES, API_DELETE_FILE } from "../constants/urls";
+import { extraerJSON } from "../utils/utils";
 import '@react-pdf-viewer/core/lib/styles/index.css';
-import * as pdfjs from 'pdfjs-dist';
+import PdfAnalysisPanel from "./PdfAnalysisPanel";
 
-export default function UploadPDF() {
+export const UploadPDF = () => {
   // Estado base del flujo
+  const [visible, setVisible] = useState(true);
   const [pdfFile, setPdfFile] = useState(null);     // archivo seleccionado
   const [prompt, setPrompt] = useState("");         // prompt desde Mongo
   const [json, setJson] = useState(null);           // plantilla desde Mongo
-  const [prompt2, setprompt2] = useState(`Tenés el lugar de Jefe de Asesoría Jurídica de una empresa importante.
-    A partir del documento adjunto, extrae la información solicitada y devuélvela EXCLUSIVAMENTE en el siguiente formato JSON válido proveido, sin texto adicional:
-    
-    {
-        "autor": "",
-        "titulo": "",
-        "resumen": "",
-        "contenido": "",
-        "tipoDoc": "",
-        "nro": 0,
-        "año": 0
-    }
-    
-    Notas:
-    - "tipoDoc" debe ser uno de: "tdCircular", "tdDisposicion".
-    - "nro" y "año" son enteros.
-    - "autor" está al final con un sello y una firma. Solamente extrae el nombre no el cargo.
-    - "año" es el año del documento, no el año actual. Debe ser un número entero de 4 dígitos.
-    `);
   const [resGemini, setResGemini] = useState("");       // respuesta cruda si no hubo JSON válido
   const [loading, setLoading] = useState(false);         // spinner botón principal
-  const [loadingMongo, setLoadingMongo] = useState(false); // spinner de carga de prompt/plantilla
-  const [isDarkMode, toggleDarkMode] = useDarkMode();    // modo oscuro (custom hook)
+  const [loadingMongo, setLoadingMongo] = useState(false); // spinner de carga de prompt/json
+  const fileInputRef = useRef(null);
+
+  const clearAll = () => {
+    setResGemini(null);      // o "" según uses; lo importante es que sea falsy
+    setPdfFile(null);
+    // setVisible(true);        // vuelve a mostrar el input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
 
   const getMongoData = async () => {
     setLoadingMongo(true);
@@ -43,9 +31,9 @@ export default function UploadPDF() {
       const resp = await axios.get(API_JSON_SCHEMA_URL);
       const data = resp.data;
 
-      // “Contrato” esperado: { prompt, json }
       if (data?.prompt) setPrompt(data.prompt);
       if (data?.json) setJson(data.json);
+
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message || "Error al cargar datos de MongoDB";
       console.error("Error al cargar datos de MongoDB:", errorMessage);
@@ -53,21 +41,23 @@ export default function UploadPDF() {
       setLoadingMongo(false);
     }
   };
-  useEffect(() => { getMongoData(); }, []);
 
-  const handleFileChange = (e) => setPdfFile(e.target.files[0]);
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!pdfFile || !prompt || !json) return alert("Falta un dato no podemos procesar el archivo.");
-
+    setPdfFile(file); // Establece el archivo para mostrarlo en el visor
     setLoading(true);
     setResGemini("");
+    // setVisible(false);  // Oculta el input de carga una vez que se selecciona un archivo
+
+    const promptFinal = `${prompt}\n\n${json}`;
+    // console.log('Prompt final:', promptFinal);
+
 
     const formData = new FormData();
-    formData.append("pdfFile", pdfFile);
-    formData.append("prompt", prompt);
-    formData.append("responseSchema", json);
+    formData.append("pdfFile", file);
+    formData.append("prompt", promptFinal);
 
     try {
       const resp = await axios.post(API_URL_UPLOAD, formData, {
@@ -75,12 +65,20 @@ export default function UploadPDF() {
       });
       let data = resp.data;
       const parsedData = extraerJSON(data);
-      console.log(parsedData);
+      // console.log('Parseado',parsedData);
 
+      setResGemini(parsedData);
 
-      setResGemini(JSON.stringify(parsedData, null, 2));
+      if (data.file?.id) {
+        try {
+          const encodedId = encodeURIComponent(data.file.id);
+          await axios.delete(API_DELETE_FILE(encodedId));
+          console.log("Archivo eliminado de la nube ✅");
+        } catch (err) {
+          console.error("Error eliminando archivo de Gemini:", err);
+        }
+      }
     } catch (error) {
-      // UX: mensaje legible (sin stack trace)
       const errorMessage = error.response?.data?.error || error.message || "Error desconocido";
       setResGemini("Error: " + errorMessage);
     } finally {
@@ -88,155 +86,82 @@ export default function UploadPDF() {
     }
   };
 
-  const copyToClipboardHandler = async () => {
-    const text = resGemini;
-    copyToClipboard(text);
-  };
-
-  console.log("Prompt:", prompt);
-  console.log("JSON:", json);
-  
-  console.log(`${prompt} 
-    ${json}`);
-  
-  
-
+  useEffect(() => {
+    getMongoData();
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      {/* Header con toggle de dark mode */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Análisis PDF con Gemini</h1>
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-            title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-          >
-            {isDarkMode ? <FaSun className="w-6 h-6" /> : <FaMoon className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
 
       {/* Main card: carga de archivo + CTA */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-full mx-auto px-4 py-4">
+        {/* {visible ? ( */}
+          <div className="mx-auto  max-w-5xl bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-3">
+            <form>
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-5">
+                <label
+                  htmlFor="pdf-upload"
+                  className="group flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 px-4 py-3
+                hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-pointer"
+                >
+                  <div className="p-2.5 rounded-full bg-blue-50 dark:bg-blue-900/30">
+                    <FaFilePdf className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-3 mb-8">
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm md:text-base font-medium text-gray-800 dark:text-gray-100">
+                      {pdfFile ? pdfFile.name : "Selecciona un archivo PDF"}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Solo archivos .pdf
+                    </p>
+                  </div>
+                </label>
 
-          {/* Estado de carga del prompt/plantilla desde Mongo */}
-          <div className="flex items-center gap-5 mb-1">
-            {/* Prompt cargado */}
-            <div className="flex items-center space-x-2">
-              {prompt ? (
-                <FaCheckCircle className="w-3 h-3 text-green-500" />
-              ) : loadingMongo ? (
-                <FaSpinner className="w-3 h-3 text-yellow-500 animate-spin" />
-              ) : (
-                <FaExclamationCircle className="w-3 h-3 text-red-500" />
-              )}
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {prompt ? "Prompt cargado" : loadingMongo ? "Cargando prompt..." : "Error al cargar prompt"}
-              </span>
-            </div>
-            {/* Schema cargado */}
-            <div className="flex items-center space-x-2">
-              {json ? (
-                <FaCheckCircle className="w-3 h-3 text-green-500" />
-              ) : loadingMongo ? (
-                <FaSpinner className="w-3 h-3 text-yellow-500 animate-spin" />
-              ) : (
-                <FaExclamationCircle className="w-3 h-3 text-red-500" />
-              )}
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {json ? "Schema cargado" : loadingMongo ? "Cargando Schema..." : "Error al cargar schema"}
-              </span>
-            </div>
+                <input
+                  id="pdf-upload"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileChange}      // ← aquí ya llamás a tu servicio
+                  className="hidden"
+                />
+              </div>
+            </form>
           </div>
-
-          <form onSubmit={handleSubmit} className="mb-6 flex justify-between items-center gap-4">
-            {/* Contenedor del archivo (60%) */}
-            <div className="w-3/5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-blue-500 p-3 dark:hover:border-blue-400 
-            transition-colors duration-200 flex items-center">
-              <input id="pdf-upload" type="file" accept="application/pdf" onChange={handleFileChange} className="hidden" />
-              <label htmlFor="pdf-upload" className="cursor-pointer flex flex-row items-center gap-4 w-full">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-full">
-                  <FaFilePdf className="w-6 h-6 text-blue-500 dark:text-blue-400" />
-                </div>
-
-                <div>
-                  <p className="text-md font-medium text-gray-700 dark:text-gray-300">
-                    {pdfFile ? pdfFile.name : "Selecciona un archivo PDF"}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Haz clic para seleccionar un archivo PDF.
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            {/* Botón para analizar (40%) */}
-            <div className="w-2/5 flex justify-end">
-              <button
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 h-16"
-                type="submit"
-                disabled={loading || !pdfFile || !prompt || !json}
-              >
-                {loading ? (
-                  <>
-                    <FaSpinner className="w-7 h-7 animate-spin" />
-                    <span className="text-xl">Procesando...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaUpload className="w-7 h-7" />
-                    <span className="text-xl">Analizar PDF</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-
-        </div>
+          {/* ) : ('')} */}
 
         {/* Panel de resultados: muestra PDF en la izquierda y JSON en la derecha */}
-        {(pdfFile) && (
-          <div className="flex flex-col md:flex-row gap-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
-            {/* Columna izquierda: Visor de PDF */}
-            <div className="w-full md:w-1/2 bg-gray-100 dark:bg-gray-900 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Vista previa del PDF</h2>
-              <div className="h-[600px] overflow-auto"> {/* Aumentamos la altura */}
-                <Worker workerUrl={`https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`}>
-                  <Viewer fileUrl={URL.createObjectURL(pdfFile)} />
-                </Worker>
-              </div>
-            </div>
+        <PdfAnalysisPanel
+          pdfFile={pdfFile}
+          data={resGemini}
+          loading={loading}
+          onClear={clearAll}
+          editableFields={["autor"]}                 // 👈 solo AUTOR editable
+          onFieldChange={(name, value) => {
+            // opcional: mantener resGemini en sync en el padre
+            setResGemini(prev => ({ ...(prev || {}), [name]: value }));
+          }}
+          // onSubmit={(finalData) => { console.log("Datos listos para enviar:", finalData); }}
+          onSubmit={async (finalData) => {
+            try {
+              const resp = await fetch(API_DISPOSICIONES, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(finalData),
+              });
+              const json = await resp.json();
+              if(json) {
+                alert("Se ha guardado con éxito ✅");
+                // console.log("Guardado OK:", json);
+              }
 
-            {/* Columna derecha: Resultado del análisis */}
-            <div className="w-full md:w-1/2 bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2">
-                  <FaCheckCircle className="w-6 h-6 text-green-500" />
-                  <span>Resultado del Análisis</span>
-                </span>
-                <button
-                  onClick={copyToClipboardHandler}
-                  className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
-                >
-                  <FaCopy className="w-4 h-4" /> Copiar
-                </button>
-                <button
-                  onClick={() => setResGemini("")}
-                  className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
-                >
-                  <FaCopy className="w-4 h-4" /> Limpiar
-                </button>
-              </div>
+            } catch (e) {
+              console.error("Error guardando Disposición:", e);
+            }
+          }}
 
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed bg-gray-50 dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-700 h-[600px] overflow-auto">
-                {resGemini || "El resultado del análisis aparecerá aquí."}
-              </pre>
-            </div>
-          </div>
-        )}
+        />
+
       </div>
     </div>
   );

@@ -1,13 +1,13 @@
 
-import UploadPDF from './components/UploadPDF'
+import { AppRouter } from './components/AppRouter';
+import { UploadPDF } from './components/UploadPDF';
 
 function App() {
   return (
-    <>
-      <UploadPDF />
-    </>
+    // <AppRouter />
+    <UploadPDF />
   )
 
 }
 
-export default App
+export default App;

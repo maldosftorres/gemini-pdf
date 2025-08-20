@@ -1,18 +1,28 @@
+// services/disposiciones.service.js
 import { Disposicion } from "../models/disposiciones.model.js";
 
-async function generarSiguienteId() {
-    const max = await Disposicion.findOne().sort({ id: -1 }).select("id").lean();
-    return (max?.id ?? 0) + 1;
-}
-
 /**
- * Inserta un documento en Disposiciones.
- * - borra _id si viene del front
- * - asigna id lógico si falta
+ * Recibe el payload tal como viene del front (ej. {autor, titulo, ...})
+ * y lo mapea al esquema de la colección (Autor, Titulo, ...).
+ * Guarda y devuelve el documento insertado.
  */
-export async function insertarDisposicion(raw) {
-    const payload = { ...raw };
-    delete payload._id;
-    // if (payload.id == null) payload.id = await generarSiguienteId();
-    return Disposicion.create(payload);
+export async function insertarDisposicion(payload = {}) {
+    const doc = {
+        Autor: payload.autor ?? payload.Autor ?? "",
+        Titulo: payload.titulo ?? payload.Titulo ?? "",
+        Resumen: payload.resumen ?? payload.Resumen ?? "",
+        Contenido: payload.contenido ?? payload.Contenido ?? "",
+        tipoDoc: payload.tipoDoc ?? payload.TipoDoc ?? "",
+        Año:
+            Number.isFinite(payload.año) ? payload.año
+                : Number(payload.Año) || 0,
+        Nro:
+            Number.isFinite(payload.nro) ? payload.nro
+                : Number(payload.Nro) || 0,
+        Documento: payload.documento ?? payload.Documento ?? "",
+        Fecha: payload.fecha ?? payload.Fecha ?? "",
+    };
+
+    const saved = await Disposicion.create(doc);
+    return saved;
 }

@@ -1,0 +1,18 @@
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Header } from './Header';
+import { UploadPDF } from './UploadPDF';
+import { ListFiles } from './ListFiles';
+import { Home } from './Home';
+
+export const AppRouter = () => {
+    return (
+        <Router>
+            <Header />
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/upload" element={<UploadPDF />} />
+                <Route path="/listar-archivos" element={<ListFiles />} />
+            </Routes>
+        </Router>
+    );
+}

@@ -4,10 +4,9 @@ const schema = new mongoose.Schema(
     {
         Autor: String,
         Documento: String,
-        Fecha: String,   // cámbialo a Date si querés más adelante
+        Fecha: String,
         Resumen: String,
         Titulo: String,
-        id: Number,      // id lógico (no _id)
         tipoDoc: String,
         Contenido: String,
         Año: Number,
