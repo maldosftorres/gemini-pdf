@@ -1,10 +1,19 @@
-import { insertarDisposicion } from "../services/disposiciones.service.js";
+import { insertarDisposicion, listarDisposiciones } from "../services/disposiciones.service.js";
 
 export async function createDisposicion(req, res, next) {
     try {
         // Aquí podrías validar req.body con zod/joi si querés
         const doc = await insertarDisposicion(req.body);
         res.status(201).json(doc);
+    } catch (err) {
+        next(err);
+    }
+}
+
+export async function getDisposiciones(req, res, next) {
+    try {
+        const docs = await listarDisposiciones();
+        res.status(200).json(docs);
     } catch (err) {
         next(err);
     }

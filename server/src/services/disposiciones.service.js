@@ -1,4 +1,3 @@
-// services/disposiciones.service.js
 import { Disposicion } from "../models/disposiciones.model.js";
 
 /**
@@ -25,4 +24,8 @@ export async function insertarDisposicion(payload = {}) {
 
     const saved = await Disposicion.create(doc);
     return saved;
+}
+
+export async function listarDisposiciones() {
+    return await Disposicion.find(); // se pueden pasar filtros si hace falta
 }

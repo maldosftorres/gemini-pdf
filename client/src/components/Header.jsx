@@ -38,6 +38,16 @@ export const Header = () => {
                             <FaList className="w-5 h-5" />
                             <span>Listar Archivos</span>
                         </Link>
+
+                        <Link
+                            to="/consultar-archivos"
+                            className="flex items-center gap-2 text-gray-700 dark:text-gray-300 
+                            hover:text-blue-500 dark:hover:text-blue-400 
+                            font-medium transition-colors duration-200"
+                        >
+                            <FaList className="w-5 h-5" />
+                            <span>Consultar Archivos</span>
+                        </Link>
                     </nav>
 
 

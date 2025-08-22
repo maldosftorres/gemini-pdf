@@ -65,7 +65,7 @@ export const UploadPDF = () => {
       });
       let data = resp.data;
       const parsedData = extraerJSON(data);
-      // console.log('Parseado',parsedData);
+      console.log(data.file);
 
       setResGemini(parsedData);
 
@@ -73,7 +73,7 @@ export const UploadPDF = () => {
         try {
           const encodedId = encodeURIComponent(data.file.id);
           await axios.delete(API_DELETE_FILE(encodedId));
-          console.log("Archivo eliminado de la nube ✅");
+          // console.log("Archivo eliminado de la nube ✅");
         } catch (err) {
           console.error("Error eliminando archivo de Gemini:", err);
         }
@@ -136,12 +136,10 @@ export const UploadPDF = () => {
           data={resGemini}
           loading={loading}
           onClear={clearAll}
-          editableFields={["autor"]}                 // 👈 solo AUTOR editable
+          editableFields={["autor"]}  // solo AUTOR editable
           onFieldChange={(name, value) => {
-            // opcional: mantener resGemini en sync en el padre
             setResGemini(prev => ({ ...(prev || {}), [name]: value }));
           }}
-          // onSubmit={(finalData) => { console.log("Datos listos para enviar:", finalData); }}
           onSubmit={async (finalData) => {
             try {
               const resp = await fetch(API_DISPOSICIONES, {
@@ -152,6 +150,7 @@ export const UploadPDF = () => {
               const json = await resp.json();
               if(json) {
                 alert("Se ha guardado con éxito ✅");
+                clearAll();
                 // console.log("Guardado OK:", json);
               }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Viewer, Worker } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import * as pdfjs from "pdfjs-dist";
-import { FaCheckCircle, FaSpinner } from "react-icons/fa";
+import { FaCheckCircle, FaFilePdf, FaSpinner } from "react-icons/fa";
 
 export default function PdfAnalysisPanel({
     pdfFile,
@@ -38,10 +38,13 @@ export default function PdfAnalysisPanel({
     return (
         <>
             {pdfFile && (
-                <div className={`flex flex-col md:flex-row gap-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 ${height} ${className}`}>
+                <div className={`text-sm flex flex-col md:flex-row gap-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-5 ${height} ${className}`}>
                     {/* Izquierda: PDF */}
-                    <div className="w-full md:w-1/2 bg-gray-100 dark:bg-gray-900 rounded-lg p-4 border border-gray-300 dark:border-gray-700 flex flex-col min-h-0">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex-none">Vista previa del PDF</h2>
+                    <div className="w-full md:w-1/2 bg-gray-100 dark:bg-gray-900 rounded-lg p-2 border border-gray-300 dark:border-gray-700 flex flex-col min-h-0">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex-none flex gap-2">
+                            <FaFilePdf className="text-red-500" />
+                            Vista previa del PDF
+                        </span>
                         <div className="flex-1 overflow-auto min-h-0">
                             <Worker workerUrl={`https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`}>
                                 {fileUrl ? <Viewer fileUrl={fileUrl} /> : null}
@@ -52,7 +55,7 @@ export default function PdfAnalysisPanel({
                     {/* Derecha: Resultado */}
                     <div className="w-full md:w-1/2 bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-700 flex flex-col min-h-0">
                         <div className="flex items-center justify-between mb-6 flex-none">
-                            <span className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <FaCheckCircle className="w-6 h-6 text-green-500" />
                                 Resultado del Análisis
                             </span>
@@ -101,7 +104,8 @@ export default function PdfAnalysisPanel({
                                                 value={form.tipoDoc || ""}
                                                 onChange={handleChange("tipoDoc")}
                                                 readOnly={!canEdit("tipoDoc")}
-                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 dark:bg-gray-800/60"
+                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 text-justify
+                                                dark:bg-gray-800/60 dark:text-white"
                                             />
                                         </Field>
 
@@ -112,7 +116,8 @@ export default function PdfAnalysisPanel({
                                                 value={Number.isFinite(form.nro) ? form.nro : 0}
                                                 onChange={handleChange("nro")}
                                                 readOnly={!canEdit("nro")}
-                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 dark:bg-gray-800/60"
+                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 text-justify
+                                                dark:bg-gray-800/60 dark:text-white"
                                             />
                                         </Field>
 
@@ -123,7 +128,8 @@ export default function PdfAnalysisPanel({
                                                 value={Number.isFinite(form.año) ? form.año : 0}
                                                 onChange={handleChange("año")}
                                                 readOnly={!canEdit("año")}
-                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 dark:bg-gray-800/60"
+                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 text-justify
+                                                dark:bg-gray-800/60 dark:text-white"
                                             />
                                         </Field>
                                     </div>
@@ -136,7 +142,8 @@ export default function PdfAnalysisPanel({
                                                 value={form.titulo || ""}
                                                 onChange={handleChange("titulo")}
                                                 readOnly={!canEdit("titulo")}
-                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 dark:bg-gray-800/60"
+                                                className="w-full rounded-md border px-3 py-2 bg-gray-100 text-justify
+                                                dark:bg-gray-800/60 dark:text-white"
                                             />
                                         </Field>
 
@@ -147,16 +154,10 @@ export default function PdfAnalysisPanel({
                                                 value={form.autor || ""}
                                                 onChange={handleChange("autor")}
                                                 readOnly={!canEdit("autor")}
-                                                className={`w-full rounded-md border px-3 py-2 ${canEdit("autor") ? "bg-white dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-800/60"}`}
+                                                className={`w-full rounded-md border px-3 py-2 dark:text-white ${canEdit("autor") ? "bg-white dark:bg-gray-800" : "bg-gray-100 dark:bg-gray-800/60"}`}
                                             />
                                         </Field>
-
-
-
-
                                     </div>
-
-
 
                                     {/* resumen */}
                                     <Field label="Resumen">
@@ -165,7 +166,8 @@ export default function PdfAnalysisPanel({
                                             value={form.resumen || ""}
                                             onChange={handleChange("resumen")}
                                             readOnly={!canEdit("resumen")}
-                                            className="w-full rounded-md border px-3 py-2 bg-gray-100 dark:bg-gray-800/60"
+                                            className="w-full rounded-md border px-3 py-2 bg-gray-100 
+                                            dark:bg-gray-800/60 dark:text-white"
                                         />
                                     </Field>
 
@@ -176,7 +178,8 @@ export default function PdfAnalysisPanel({
                                             value={form.contenido || ""}
                                             onChange={handleChange("contenido")}
                                             readOnly={!canEdit("contenido")}
-                                            className="w-full rounded-md border px-3 py-2 bg-gray-100 dark:bg-gray-800/60"
+                                            className="w-full rounded-md border px-3 py-2 bg-gray-100
+                                            dark:bg-gray-800/60 dark:text-white"
                                         />
                                     </Field>
                                 </div>
@@ -192,7 +195,7 @@ export default function PdfAnalysisPanel({
 function Field({ label, children }) {
     return (
         <div>
-            <label className="block text-sm font-bold mb-1">{label}</label>
+            <label className="block text-sm font-bold mb-1 dark:text-white">{label}</label>
             {children}
         </div>
     );

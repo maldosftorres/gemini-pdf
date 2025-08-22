@@ -4,8 +4,8 @@ import { UploadPDF } from './components/UploadPDF';
 
 function App() {
   return (
-    // <AppRouter />
-    <UploadPDF />
+    <AppRouter />
+    // <UploadPDF />
   )
 
 }
